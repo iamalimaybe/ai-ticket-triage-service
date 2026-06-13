@@ -2,6 +2,8 @@ package com.aliniaz.tickettriage.ticket.service.impl;
 
 import com.aliniaz.tickettriage.ticket.analysis.TicketTriageAnalyzer;
 import com.aliniaz.tickettriage.ticket.analysis.dto.TicketTriageAnalysis;
+import com.aliniaz.tickettriage.ticket.analysis.validator.TicketTriageAnalysisValidator;
+import com.aliniaz.tickettriage.ticket.analysis.validator.dto.TicketTriageAnalysisValidationResult;
 import com.aliniaz.tickettriage.ticket.api.request.TicketAnalysisRequest;
 import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisDetailResponse;
 import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisResponse;
@@ -16,47 +18,74 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-import static com.aliniaz.tickettriage.ticket.utilities.StringUtil.containsAny;
-import static com.aliniaz.tickettriage.ticket.utilities.StringUtil.normalize;
+import static com.aliniaz.tickettriage.ticket.utilities.StringUtil.isBlank;
 
 @Service
 public class TicketAnalysisServiceImpl implements TicketAnalysisService {
 
     private final TicketAnalysisRepository ticketAnalysisRepository;
     private final TicketTriageAnalyzer ticketTriageAnalyzer;
+    private final TicketTriageAnalysisValidator ticketTriageAnalysisValidator;
 
     public TicketAnalysisServiceImpl(
             TicketAnalysisRepository ticketAnalysisRepository,
-            TicketTriageAnalyzer ticketTriageAnalyzer
+            TicketTriageAnalyzer ticketTriageAnalyzer,
+            TicketTriageAnalysisValidator ticketTriageAnalysisValidator
     ) {
         this.ticketAnalysisRepository = ticketAnalysisRepository;
         this.ticketTriageAnalyzer = ticketTriageAnalyzer;
+        this.ticketTriageAnalysisValidator = ticketTriageAnalysisValidator;
     }
 
     @Override
     @Transactional
     public TicketAnalysisResponse analyze(TicketAnalysisRequest request) {
         TicketTriageAnalysis analysis = ticketTriageAnalyzer.analyze(request);
+        TicketTriageAnalysisValidationResult validationResult = ticketTriageAnalysisValidator.validate(analysis);
+        TicketTriageAnalysis persistableAnalysis = toPersistableAnalysis(analysis, validationResult);
 
         TicketAnalysis ticketAnalysis = TicketAnalysis.builder()
                 .subject(request.subject())
                 .body(request.body())
                 .customerId(request.customerId())
-                .analysisSource(analysis.analysisSource())
-                .status(analysis.status())
-                .category(analysis.category())
-                .priority(analysis.priority())
-                .customerIntent(analysis.customerIntent())
-                .missingInformation(analysis.missingInformation())
-                .validationMessages(analysis.validationMessages())
+                .analysisSource(persistableAnalysis.analysisSource())
+                .status(persistableAnalysis.status())
+                .category(persistableAnalysis.category())
+                .priority(persistableAnalysis.priority())
+                .customerIntent(persistableAnalysis.customerIntent())
+                .missingInformation(persistableAnalysis.missingInformation())
+                .validationMessages(persistableAnalysis.validationMessages())
                 .build();
 
         TicketAnalysis savedTicketAnalysis = ticketAnalysisRepository.save(ticketAnalysis);
 
         return toResponse(savedTicketAnalysis);
+    }
+
+    private TicketTriageAnalysis toPersistableAnalysis(
+            TicketTriageAnalysis analysis,
+            TicketTriageAnalysisValidationResult validationResult
+    ) {
+        if (validationResult.valid()) {
+            return analysis;
+        }
+
+        return new TicketTriageAnalysis(
+                analysis == null || isBlank(analysis.analysisSource()) ? "unknown-analyzer" : analysis.analysisSource(),
+                AnalysisStatus.FAILED,
+                analysis == null || analysis.category() == null ? TicketCategory.OTHER : analysis.category(),
+                analysis == null || analysis.priority() == null ? TicketPriority.MEDIUM : analysis.priority(),
+                analysis == null || isBlank(analysis.customerIntent())
+                        ? "Analysis failed validation and requires manual review."
+                        : analysis.customerIntent(),
+                analysis == null || analysis.missingInformation() == null
+                        ? Collections.emptyList()
+                        : List.copyOf(analysis.missingInformation()),
+                List.copyOf(validationResult.messages())
+        );
     }
 
     private TicketAnalysisResponse toResponse(TicketAnalysis ticketAnalysis) {
