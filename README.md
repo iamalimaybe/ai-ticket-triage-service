@@ -33,6 +33,10 @@ The focus is not building a chatbot. The focus is building a production-aware ba
 * Property-driven human review decision threshold
 * List endpoint for review queues
 * Detail endpoint for inspecting saved analysis
+* Review status update endpoint
+* Consistent API error response handling
+* Dockerfile for containerized backend builds
+* Docker Compose setup for app and PostgreSQL
 * Controller, parser, validator, service, and review decision tests
 
 ## Tech Stack
@@ -43,6 +47,7 @@ The focus is not building a chatbot. The focus is building a production-aware ba
 * Spring Data JPA
 * PostgreSQL
 * Liquibase
+* Docker
 * Docker Compose
 * Ollama
 * Qwen3 local model
@@ -50,6 +55,7 @@ The focus is not building a chatbot. The focus is building a production-aware ba
 * MockMvc
 * Mockito
 * Lombok
+* GitHub Actions CI
 
 ## API Endpoints
 
@@ -107,7 +113,33 @@ size=10
 
 Example:
 
-`GET /api/tickets/analyses?reviewStatus=NEEDS_REVIEW&page=0&size=10`
+```text
+GET /api/tickets/analyses?reviewStatus=NEEDS_REVIEW&page=0&size=10
+```
+
+### Update Review Status
+
+`PATCH /api/tickets/analyses/{analysisId}/review`
+
+Example request:
+
+```json
+{
+  "reviewStatus": "REVIEWED",
+  "reviewReason": "Checked manually and result is acceptable.",
+  "reviewedBy": "reviewer@example.com"
+}
+```
+
+Supported review statuses:
+
+```text
+NOT_REQUIRED
+NEEDS_REVIEW
+REVIEWED
+```
+
+This allows a reviewer to mark an analysis as reviewed, send it back to the review queue, or mark review as not required.
 
 ## Analyzer Modes
 
@@ -129,6 +161,7 @@ Uses a local Ollama model.
 
 ```properties
 TICKET_TRIAGE_ANALYZER_MODE=ollama
+OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=qwen3:4b
 ```
 
@@ -149,12 +182,34 @@ Current rules:
 * Valid deterministic analysis does not require review
 * Valid LLM analysis at or above threshold does not require review
 
+## API Error Response
+
+The service uses a consistent API error response for validation errors, invalid request parameters, and not-found responses.
+
+Example validation error:
+
+```json
+{
+  "timestamp": "2026-06-13T10:00:00Z",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Request validation failed.",
+  "path": "/api/tickets/analyze",
+  "validationErrors": [
+    {
+      "field": "subject",
+      "message": "must not be blank"
+    }
+  ]
+}
+```
+
 ## Local Setup
 
 Start PostgreSQL:
 
 ```powershell
-docker compose up -d
+docker compose up -d postgres
 ```
 
 Run tests:
@@ -175,7 +230,7 @@ Health check:
 curl http://localhost:8080/actuator/health
 ```
 
-## Run With Ollama
+## Run With Ollama Without Docker
 
 Make sure Ollama is running and the model is available locally.
 
@@ -189,6 +244,7 @@ Set environment variables:
 
 ```powershell
 $env:TICKET_TRIAGE_ANALYZER_MODE="ollama"
+$env:OLLAMA_BASE_URL="http://localhost:11434"
 $env:OLLAMA_MODEL="qwen3:4b"
 ```
 
@@ -209,6 +265,105 @@ Invoke-RestMethod `
   ConvertTo-Json -Depth 10
 ```
 
+## Run With Docker Compose
+
+The Docker Compose setup can run PostgreSQL and the Spring Boot backend together.
+
+Default deterministic mode:
+
+```properties
+TICKET_TRIAGE_ANALYZER_MODE=deterministic
+```
+
+Start the full stack:
+
+```bash
+docker compose up --build
+```
+
+Health check:
+
+```bash
+curl http://localhost:8080/actuator/health
+```
+
+Submit a ticket:
+
+```bash
+curl -X POST http://localhost:8080/api/tickets/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"subject":"Cannot login","body":"I cannot access my account after password reset.","customerId":"CUST-1001"}'
+```
+
+Stop the stack:
+
+```bash
+docker compose down
+```
+
+## Docker Compose With Ollama
+
+The Docker Compose setup also supports Ollama mode through environment variables.
+
+For local Ollama-backed analysis:
+
+```properties
+TICKET_TRIAGE_ANALYZER_MODE=ollama
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_MODEL=qwen3:4b
+```
+
+On some Windows + WSL Docker setups, `host.docker.internal` may not be reachable from containers. In that case, configure Ollama on Windows to listen beyond localhost:
+
+```powershell
+setx OLLAMA_HOST "0.0.0.0:11434"
+```
+
+Then fully restart Ollama.
+
+From WSL, find the gateway IP:
+
+```bash
+ip route | awk '/default/ {print $3}'
+```
+
+Then set `OLLAMA_BASE_URL` in the local `.env` file:
+
+```properties
+OLLAMA_BASE_URL=http://172.x.x.x:11434
+```
+
+The local `.env` file is ignored by Git and should not be committed.
+
+To verify Ollama is reachable from WSL:
+
+```bash
+curl http://172.x.x.x:11434/api/tags
+```
+
+A successful response should return JSON containing the available local models.
+
+## Environment Variables
+
+A safe example configuration is provided in `.env.example`.
+
+Local values should be placed in `.env`.
+
+```properties
+POSTGRES_DB=ticket_triage
+POSTGRES_USER=ticket_triage
+POSTGRES_PASSWORD=ticket_triage
+POSTGRES_PORT=5433
+
+APP_PORT=8080
+
+TICKET_TRIAGE_ANALYZER_MODE=deterministic
+TICKET_TRIAGE_REVIEW_CONFIDENCE_THRESHOLD=0.70
+
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_MODEL=qwen3:4b
+```
+
 ## Portfolio Focus
 
 This project demonstrates:
@@ -218,7 +373,10 @@ This project demonstrates:
 * Structured LLM output handling
 * Validation-first AI workflow design
 * Persistence of raw and validated AI output
+* Auditability through raw model output and timestamps
 * Review decisioning for uncertain AI results
+* Consistent API error handling
+* Dockerized backend execution
 * Testable backend behavior around LLM output
 
 The project is intentionally backend-first. A lightweight review UI can be added later as a thin layer over the existing API.
