@@ -1,12 +1,20 @@
 package com.aliniaz.tickettriage.ticket.domain;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "ticket_analysis")
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Getter
 public class TicketAnalysis {
 
     @Id
@@ -40,6 +48,7 @@ public class TicketAnalysis {
     @Column(name = "customer_intent", nullable = false, length = 500)
     private String customerIntent;
 
+    @Builder.Default
     @ElementCollection
     @CollectionTable(
             name = "ticket_analysis_missing_information",
@@ -48,6 +57,7 @@ public class TicketAnalysis {
     @Column(name = "field_name", nullable = false, length = 120)
     private List<String> missingInformation = new ArrayList<>();
 
+    @Builder.Default
     @ElementCollection
     @CollectionTable(
             name = "ticket_analysis_validation_messages",
@@ -55,63 +65,4 @@ public class TicketAnalysis {
     )
     @Column(name = "message", nullable = false, length = 500)
     private List<String> validationMessages = new ArrayList<>();
-
-    protected TicketAnalysis() {
-    }
-
-    public TicketAnalysis(
-            String subject,
-            String body,
-            String customerId,
-            String analysisSource,
-            AnalysisStatus status,
-            TicketCategory category,
-            TicketPriority priority,
-            String customerIntent,
-            List<String> missingInformation,
-            List<String> validationMessages
-    ) {
-        this.subject = subject;
-        this.body = body;
-        this.customerId = customerId;
-        this.analysisSource = analysisSource;
-        this.status = status;
-        this.category = category;
-        this.priority = priority;
-        this.customerIntent = customerIntent;
-        this.missingInformation = new ArrayList<>(missingInformation);
-        this.validationMessages = new ArrayList<>(validationMessages);
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getAnalysisSource() {
-        return analysisSource;
-    }
-
-    public AnalysisStatus getStatus() {
-        return status;
-    }
-
-    public TicketCategory getCategory() {
-        return category;
-    }
-
-    public TicketPriority getPriority() {
-        return priority;
-    }
-
-    public String getCustomerIntent() {
-        return customerIntent;
-    }
-
-    public List<String> getMissingInformation() {
-        return missingInformation;
-    }
-
-    public List<String> getValidationMessages() {
-        return validationMessages;
-    }
 }
