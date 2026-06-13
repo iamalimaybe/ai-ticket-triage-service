@@ -4,6 +4,7 @@ import com.aliniaz.tickettriage.ticket.domain.AnalysisStatus;
 import com.aliniaz.tickettriage.ticket.domain.TicketCategory;
 import com.aliniaz.tickettriage.ticket.domain.TicketPriority;
 
+import java.time.Instant;
 import java.util.List;
 
 public record TicketAnalysisDetailResponse(
@@ -12,11 +13,14 @@ public record TicketAnalysisDetailResponse(
         String body,
         String customerId,
         String analysisSource,
+        String rawModelOutput,
         AnalysisStatus status,
         TicketCategory category,
         TicketPriority priority,
         String customerIntent,
         List<String> missingInformation,
-        List<String> validationMessages
+        List<String> validationMessages,
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

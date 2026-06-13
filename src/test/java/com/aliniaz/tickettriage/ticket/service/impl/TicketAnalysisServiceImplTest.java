@@ -41,6 +41,7 @@ class TicketAnalysisServiceImplTest {
                 null,
                 null,
                 null,
+                null,
                 "",
                 null,
                 null

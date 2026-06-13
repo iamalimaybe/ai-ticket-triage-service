@@ -29,7 +29,7 @@ public class DefaultTicketTriageOutputParser implements TicketTriageOutputParser
     @Override
     public TicketTriageAnalysis parse(String rawOutput) {
         if (isBlank(rawOutput)) {
-            return failedAnalysis("Model output is blank.");
+            return failedAnalysis(rawOutput, "Model output is blank.");
         }
 
         try {
@@ -37,6 +37,7 @@ public class DefaultTicketTriageOutputParser implements TicketTriageOutputParser
 
             return new TicketTriageAnalysis(
                     ANALYSIS_SOURCE,
+                    rawOutput,
                     AnalysisStatus.VALIDATED,
                     parseCategory(output.category()),
                     parsePriority(output.priority()),
@@ -47,9 +48,9 @@ public class DefaultTicketTriageOutputParser implements TicketTriageOutputParser
                     List.of("Model output parsed successfully.")
             );
         } catch (JsonProcessingException exception) {
-            return failedAnalysis("Model output was not valid JSON.");
+            return failedAnalysis(rawOutput, "Model output was not valid JSON.");
         } catch (IllegalArgumentException exception) {
-            return failedAnalysis("Model output contained unsupported enum values.");
+            return failedAnalysis(rawOutput, "Model output contained unsupported enum values.");
         }
     }
 
@@ -69,9 +70,10 @@ public class DefaultTicketTriageOutputParser implements TicketTriageOutputParser
         return TicketPriority.valueOf(value.trim());
     }
 
-    private TicketTriageAnalysis failedAnalysis(String message) {
+    private TicketTriageAnalysis failedAnalysis(String rawOutput, String message) {
         return new TicketTriageAnalysis(
                 ANALYSIS_SOURCE,
+                rawOutput,
                 AnalysisStatus.FAILED,
                 TicketCategory.OTHER,
                 TicketPriority.MEDIUM,

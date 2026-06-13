@@ -29,6 +29,7 @@ class DefaultTicketTriageOutputParserTest {
 
         assertThat(analysis.analysisSource()).isEqualTo("llm-json-parser");
         assertThat(analysis.status()).isEqualTo(AnalysisStatus.VALIDATED);
+        assertThat(analysis.rawModelOutput()).isEqualTo(rawOutput);
         assertThat(analysis.category()).isEqualTo(TicketCategory.ACCOUNT_ACCESS);
         assertThat(analysis.priority()).isEqualTo(TicketPriority.URGENT);
         assertThat(analysis.customerIntent()).isEqualTo("Customer needs help accessing their account.");

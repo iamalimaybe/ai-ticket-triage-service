@@ -117,6 +117,8 @@ class TicketAnalysisControllerTest {
                 .andExpect(jsonPath("$.body").value("I cannot access my account after password reset."))
                 .andExpect(jsonPath("$.customerId").value("CUST-1001"))
                 .andExpect(jsonPath("$.analysisSource").value("deterministic-stub"))
+                .andExpect(jsonPath("$.rawModelOutput").isEmpty())
+                .andExpect(jsonPath("$.status").value("VALIDATED"))
                 .andExpect(jsonPath("$.status").value("VALIDATED"))
                 .andExpect(jsonPath("$.category").value("ACCOUNT_ACCESS"))
                 .andExpect(jsonPath("$.priority").value("URGENT"));

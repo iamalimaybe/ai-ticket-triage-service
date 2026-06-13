@@ -52,6 +52,7 @@ public class TicketAnalysisServiceImpl implements TicketAnalysisService {
                 .body(request.body())
                 .customerId(request.customerId())
                 .analysisSource(persistableAnalysis.analysisSource())
+                .rawModelOutput(persistableAnalysis.rawModelOutput())
                 .status(persistableAnalysis.status())
                 .category(persistableAnalysis.category())
                 .priority(persistableAnalysis.priority())
@@ -75,6 +76,7 @@ public class TicketAnalysisServiceImpl implements TicketAnalysisService {
 
         return new TicketTriageAnalysis(
                 analysis == null || isBlank(analysis.analysisSource()) ? "unknown-analyzer" : analysis.analysisSource(),
+                analysis == null ? null : analysis.rawModelOutput(),
                 AnalysisStatus.FAILED,
                 analysis == null || analysis.category() == null ? TicketCategory.OTHER : analysis.category(),
                 analysis == null || analysis.priority() == null ? TicketPriority.MEDIUM : analysis.priority(),
@@ -120,12 +122,15 @@ public class TicketAnalysisServiceImpl implements TicketAnalysisService {
                 ticketAnalysis.getBody(),
                 ticketAnalysis.getCustomerId(),
                 ticketAnalysis.getAnalysisSource(),
+                ticketAnalysis.getRawModelOutput(),
                 ticketAnalysis.getStatus(),
                 ticketAnalysis.getCategory(),
                 ticketAnalysis.getPriority(),
                 ticketAnalysis.getCustomerIntent(),
                 List.copyOf(ticketAnalysis.getMissingInformation()),
-                List.copyOf(ticketAnalysis.getValidationMessages())
+                List.copyOf(ticketAnalysis.getValidationMessages()),
+                ticketAnalysis.getCreatedAt(),
+                ticketAnalysis.getUpdatedAt()
         );
     }
 }

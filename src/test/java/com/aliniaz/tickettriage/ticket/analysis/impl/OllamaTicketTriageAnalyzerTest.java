@@ -37,6 +37,7 @@ class OllamaTicketTriageAnalyzerTest {
 
         TicketTriageAnalysis parsedAnalysis = new TicketTriageAnalysis(
                 "llm-json-parser",
+                null,
                 AnalysisStatus.VALIDATED,
                 TicketCategory.ACCOUNT_ACCESS,
                 TicketPriority.URGENT,

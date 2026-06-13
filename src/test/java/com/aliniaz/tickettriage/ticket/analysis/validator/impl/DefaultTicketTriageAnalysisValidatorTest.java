@@ -19,6 +19,7 @@ class DefaultTicketTriageAnalysisValidatorTest {
     void validateReturnsValidForCompleteAnalysis() {
         TicketTriageAnalysis analysis = new TicketTriageAnalysis(
                 "deterministic-stub",
+                null,
                 AnalysisStatus.VALIDATED,
                 TicketCategory.ACCOUNT_ACCESS,
                 TicketPriority.URGENT,
@@ -37,6 +38,7 @@ class DefaultTicketTriageAnalysisValidatorTest {
     void validateReturnsInvalidForIncompleteAnalysis() {
         TicketTriageAnalysis analysis = new TicketTriageAnalysis(
                 "",
+                null,
                 null,
                 null,
                 null,

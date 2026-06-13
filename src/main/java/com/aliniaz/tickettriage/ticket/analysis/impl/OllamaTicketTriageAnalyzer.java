@@ -39,6 +39,7 @@ public class OllamaTicketTriageAnalyzer implements TicketTriageAnalyzer {
         } catch (RuntimeException exception) {
             return new TicketTriageAnalysis(
                     "ollama-analyzer",
+                    null,
                     AnalysisStatus.FAILED,
                     TicketCategory.OTHER,
                     TicketPriority.MEDIUM,

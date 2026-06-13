@@ -2,7 +2,10 @@ package com.aliniaz.tickettriage.ticket.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -62,4 +65,15 @@ public class TicketAnalysis {
     )
     @Column(name = "message", nullable = false, length = 500)
     private List<String> validationMessages = new ArrayList<>();
+
+    @Column(name = "raw_model_output", columnDefinition = "TEXT")
+    private String rawModelOutput;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    @CreationTimestamp
+    private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    @UpdateTimestamp
+    private Instant updatedAt;
 }
