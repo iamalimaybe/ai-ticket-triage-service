@@ -12,13 +12,17 @@ The service accepts support tickets, analyzes them using either a deterministic 
 
 The following screenshots are stored in `docs/images/` and illustrate the application running locally.
 
-### Swagger UI (`docs/images/swagger-ui.png`)
+### Swagger UI
 
 Swagger UI exposes the backend API for local inspection and testing without requiring a separate frontend application.
 
-### Ticket Analysis Response (`docs/images/analyze-ticket-response.png`)
+![Swagger UI](docs/images/swagger-ui.png)
+
+### Ticket Analysis Response
 
 This example shows the response returned after submitting a support ticket for analysis, including the structured triage output that is persisted by the system.
+
+![Ticket analysis response](docs/images/analyze-ticket-response.png)
 
 ## Why This Project Exists
 
