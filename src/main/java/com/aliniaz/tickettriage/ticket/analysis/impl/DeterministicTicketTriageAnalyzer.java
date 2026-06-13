@@ -7,6 +7,7 @@ import com.aliniaz.tickettriage.ticket.domain.AnalysisStatus;
 import com.aliniaz.tickettriage.ticket.domain.TicketCategory;
 import com.aliniaz.tickettriage.ticket.domain.TicketPriority;
 import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +16,12 @@ import static com.aliniaz.tickettriage.ticket.utilities.StringUtil.containsAny;
 import static com.aliniaz.tickettriage.ticket.utilities.StringUtil.normalize;
 
 @Component
+@ConditionalOnProperty(
+        prefix = "ticket.triage.analyzer",
+        name = "mode",
+        havingValue = "deterministic",
+        matchIfMissing = true
+)
 public class DeterministicTicketTriageAnalyzer implements TicketTriageAnalyzer {
 
     @Override
