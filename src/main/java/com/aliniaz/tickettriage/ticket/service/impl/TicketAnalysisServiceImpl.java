@@ -8,13 +8,16 @@ import com.aliniaz.tickettriage.ticket.analysis.validator.TicketTriageAnalysisVa
 import com.aliniaz.tickettriage.ticket.analysis.validator.dto.TicketTriageAnalysisValidationResult;
 import com.aliniaz.tickettriage.ticket.api.request.TicketAnalysisRequest;
 import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisDetailResponse;
+import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisListResponse;
 import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisResponse;
-import com.aliniaz.tickettriage.ticket.domain.AnalysisStatus;
-import com.aliniaz.tickettriage.ticket.domain.TicketAnalysis;
-import com.aliniaz.tickettriage.ticket.domain.TicketCategory;
-import com.aliniaz.tickettriage.ticket.domain.TicketPriority;
+import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisSummaryResponse;
+import com.aliniaz.tickettriage.ticket.domain.*;
 import com.aliniaz.tickettriage.ticket.repository.TicketAnalysisRepository;
 import com.aliniaz.tickettriage.ticket.service.TicketAnalysisService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -145,6 +148,50 @@ public class TicketAnalysisServiceImpl implements TicketAnalysisService {
                 ticketAnalysis.getCustomerIntent(),
                 List.copyOf(ticketAnalysis.getMissingInformation()),
                 List.copyOf(ticketAnalysis.getValidationMessages()),
+                ticketAnalysis.getCreatedAt(),
+                ticketAnalysis.getUpdatedAt()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TicketAnalysisListResponse listAnalyses(ReviewStatus reviewStatus, int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 50);
+
+        Pageable pageable = PageRequest.of(
+                safePage,
+                safeSize,
+                Sort.by(Sort.Direction.DESC, "createdAt")
+        );
+
+        Page<TicketAnalysis> analyses = reviewStatus == null
+                ? ticketAnalysisRepository.findAll(pageable)
+                : ticketAnalysisRepository.findByReviewStatus(reviewStatus, pageable);
+
+        return new TicketAnalysisListResponse(
+                analyses.stream()
+                        .map(this::toSummaryResponse)
+                        .toList(),
+                analyses.getNumber(),
+                analyses.getSize(),
+                analyses.getTotalElements(),
+                analyses.getTotalPages()
+        );
+    }
+
+    private TicketAnalysisSummaryResponse toSummaryResponse(TicketAnalysis ticketAnalysis) {
+        return new TicketAnalysisSummaryResponse(
+                ticketAnalysis.getId(),
+                ticketAnalysis.getSubject(),
+                ticketAnalysis.getCustomerId(),
+                ticketAnalysis.getAnalysisSource(),
+                ticketAnalysis.getModelConfidence(),
+                ticketAnalysis.getReviewStatus(),
+                ticketAnalysis.getReviewReason(),
+                ticketAnalysis.getStatus(),
+                ticketAnalysis.getCategory(),
+                ticketAnalysis.getPriority(),
                 ticketAnalysis.getCreatedAt(),
                 ticketAnalysis.getUpdatedAt()
         );

@@ -134,4 +134,60 @@ class TicketAnalysisControllerTest {
         mockMvc.perform(get("/api/tickets/analyses/{analysisId}", 999999L))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void listAnalysesReturnsPersistedAnalysisSummaries() throws Exception {
+        String requestBody = """
+            {
+              "subject": "Cannot login",
+              "body": "I cannot access my account after password reset.",
+              "customerId": "CUST-1001"
+            }
+            """;
+
+        mockMvc.perform(post("/api/tickets/analyze")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/tickets/analyses")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.items[0].analysisId").exists())
+                .andExpect(jsonPath("$.items[0].subject").exists())
+                .andExpect(jsonPath("$.items[0].analysisSource").exists())
+                .andExpect(jsonPath("$.items[0].reviewStatus").exists())
+                .andExpect(jsonPath("$.items[0].status").exists())
+                .andExpect(jsonPath("$.items[0].category").exists())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.totalElements").exists())
+                .andExpect(jsonPath("$.totalPages").exists());
+    }
+
+    @Test
+    void listAnalysesCanFilterByReviewStatus() throws Exception {
+        String requestBody = """
+            {
+              "subject": "Cannot login",
+              "body": "I cannot access my account after password reset.",
+              "customerId": "CUST-1001"
+            }
+            """;
+
+        mockMvc.perform(post("/api/tickets/analyze")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/tickets/analyses")
+                        .param("reviewStatus", "NOT_REQUIRED")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.items[0].reviewStatus").value("NOT_REQUIRED"));
+    }
 }
