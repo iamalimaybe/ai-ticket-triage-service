@@ -1,6 +1,7 @@
 package com.aliniaz.tickettriage.ticket.service;
 
 import com.aliniaz.tickettriage.ticket.api.request.TicketAnalysisRequest;
+import com.aliniaz.tickettriage.ticket.api.request.TicketAnalysisReviewRequest;
 import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisDetailResponse;
 import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisListResponse;
 import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisResponse;
@@ -11,4 +12,5 @@ public interface TicketAnalysisService {
     TicketAnalysisDetailResponse getAnalysis(Long analysisId);
 
     TicketAnalysisListResponse listAnalyses(ReviewStatus reviewStatus, int page, int size);
+    TicketAnalysisDetailResponse updateReviewStatus(Long analysisId, TicketAnalysisReviewRequest request);;
 }

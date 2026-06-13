@@ -12,6 +12,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -189,5 +190,102 @@ class TicketAnalysisControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items").isArray())
                 .andExpect(jsonPath("$.items[0].reviewStatus").value("NOT_REQUIRED"));
+    }
+
+    @Test
+    void markReviewedUpdatesReviewStatus() throws Exception {
+        String analyzeRequestBody = """
+            {
+              "subject": "Cannot login",
+              "body": "I cannot access my account after password reset.",
+              "customerId": "CUST-1001"
+            }
+            """;
+
+        String analyzeResponseBody = mockMvc.perform(post("/api/tickets/analyze")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(analyzeRequestBody))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long analysisId = objectMapper.readTree(analyzeResponseBody)
+                .get("analysisId")
+                .asLong();
+
+        String reviewRequestBody = """
+            {
+              "reviewStatus": "REVIEWED",
+              "reviewReason": "Reviewed and accepted by support lead.",
+              "reviewedBy": "Ali"
+            }
+            """;
+
+        mockMvc.perform(patch("/api/tickets/analyses/{analysisId}/review", analysisId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(reviewRequestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.analysisId").value(analysisId))
+                .andExpect(jsonPath("$.reviewStatus").value("REVIEWED"))
+                .andExpect(jsonPath("$.reviewReason").value("Reviewed and accepted by support lead."))
+                .andExpect(jsonPath("$.reviewedBy").value("Ali"))
+                .andExpect(jsonPath("$.reviewedAt").exists());
+    }
+
+    @Test
+    void updateReviewStatusCanMoveReviewedAnalysisBackToNeedsReview() throws Exception {
+        String analyzeRequestBody = """
+            {
+              "subject": "Cannot login",
+              "body": "I cannot access my account after password reset.",
+              "customerId": "CUST-1001"
+            }
+            """;
+
+        String analyzeResponseBody = mockMvc.perform(post("/api/tickets/analyze")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(analyzeRequestBody))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long analysisId = objectMapper.readTree(analyzeResponseBody)
+                .get("analysisId")
+                .asLong();
+
+        String reviewedRequestBody = """
+            {
+              "reviewStatus": "REVIEWED",
+              "reviewReason": "Reviewed by mistake.",
+              "reviewedBy": "Ali"
+            }
+            """;
+
+        mockMvc.perform(patch("/api/tickets/analyses/{analysisId}/review", analysisId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(reviewedRequestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reviewStatus").value("REVIEWED"))
+                .andExpect(jsonPath("$.reviewedAt").exists())
+                .andExpect(jsonPath("$.reviewedBy").value("Ali"));
+
+        String needsReviewRequestBody = """
+            {
+              "reviewStatus": "NEEDS_REVIEW",
+              "reviewReason": "Returned to review queue for correction.",
+              "reviewedBy": "Ali"
+            }
+            """;
+
+        mockMvc.perform(patch("/api/tickets/analyses/{analysisId}/review", analysisId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(needsReviewRequestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reviewStatus").value("NEEDS_REVIEW"))
+                .andExpect(jsonPath("$.reviewReason").value("Returned to review queue for correction."))
+                .andExpect(jsonPath("$.reviewedAt").isEmpty())
+                .andExpect(jsonPath("$.reviewedBy").isEmpty());
     }
 }

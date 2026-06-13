@@ -18,6 +18,8 @@ public record TicketAnalysisDetailResponse(
         Double modelConfidence,
         ReviewStatus reviewStatus,
         String reviewReason,
+        Instant reviewedAt,
+        String reviewedBy,
         AnalysisStatus status,
         TicketCategory category,
         TicketPriority priority,

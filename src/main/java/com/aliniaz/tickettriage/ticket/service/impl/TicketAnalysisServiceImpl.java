@@ -7,6 +7,7 @@ import com.aliniaz.tickettriage.ticket.analysis.review.dto.TicketReviewDecision;
 import com.aliniaz.tickettriage.ticket.analysis.validator.TicketTriageAnalysisValidator;
 import com.aliniaz.tickettriage.ticket.analysis.validator.dto.TicketTriageAnalysisValidationResult;
 import com.aliniaz.tickettriage.ticket.api.request.TicketAnalysisRequest;
+import com.aliniaz.tickettriage.ticket.api.request.TicketAnalysisReviewRequest;
 import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisDetailResponse;
 import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisListResponse;
 import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisResponse;
@@ -142,6 +143,8 @@ public class TicketAnalysisServiceImpl implements TicketAnalysisService {
                 ticketAnalysis.getModelConfidence(),
                 ticketAnalysis.getReviewStatus(),
                 ticketAnalysis.getReviewReason(),
+                ticketAnalysis.getReviewedAt(),
+                ticketAnalysis.getReviewedBy(),
                 ticketAnalysis.getStatus(),
                 ticketAnalysis.getCategory(),
                 ticketAnalysis.getPriority(),
@@ -195,5 +198,23 @@ public class TicketAnalysisServiceImpl implements TicketAnalysisService {
                 ticketAnalysis.getCreatedAt(),
                 ticketAnalysis.getUpdatedAt()
         );
+    }
+
+    @Override
+    @Transactional
+    public TicketAnalysisDetailResponse updateReviewStatus(Long analysisId, TicketAnalysisReviewRequest request) {
+        TicketAnalysis ticketAnalysis = ticketAnalysisRepository.findById(analysisId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Ticket analysis not found"
+                ));
+
+        ticketAnalysis.updateReviewStatus(
+                request.reviewStatus(),
+                request.reviewReason(),
+                request.reviewedBy()
+        );
+
+        return toDetailResponse(ticketAnalysis);
     }
 }

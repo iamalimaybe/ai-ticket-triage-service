@@ -79,6 +79,12 @@ public class TicketAnalysis {
     @Column(name = "review_reason", length = 500)
     private String reviewReason;
 
+    @Column(name = "reviewed_at")
+    private Instant reviewedAt;
+
+    @Column(name = "reviewed_by", length = 120)
+    private String reviewedBy;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private Instant createdAt;
@@ -86,4 +92,18 @@ public class TicketAnalysis {
     @Column(name = "updated_at", nullable = false)
     @UpdateTimestamp
     private Instant updatedAt;
+
+    public void updateReviewStatus(ReviewStatus reviewStatus, String reviewReason, String reviewedBy) {
+        this.reviewStatus = reviewStatus;
+        this.reviewReason = reviewReason;
+
+        if (reviewStatus == ReviewStatus.REVIEWED) {
+            this.reviewedBy = reviewedBy;
+            this.reviewedAt = Instant.now();
+            return;
+        }
+
+        this.reviewedBy = null;
+        this.reviewedAt = null;
+    }
 }

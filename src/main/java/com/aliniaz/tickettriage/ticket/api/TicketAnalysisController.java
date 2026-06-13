@@ -1,6 +1,7 @@
 package com.aliniaz.tickettriage.ticket.api;
 
 import com.aliniaz.tickettriage.ticket.api.request.TicketAnalysisRequest;
+import com.aliniaz.tickettriage.ticket.api.request.TicketAnalysisReviewRequest;
 import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisDetailResponse;
 import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisListResponse;
 import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisResponse;
@@ -35,5 +36,13 @@ public class TicketAnalysisController {
             @RequestParam(defaultValue = "20") int size
     ) {
         return ticketAnalysisService.listAnalyses(reviewStatus, page, size);
+    }
+
+    @PatchMapping("/analyses/{analysisId}/review")
+    public TicketAnalysisDetailResponse updateReviewStatus(
+            @PathVariable Long analysisId,
+            @Valid @RequestBody TicketAnalysisReviewRequest request
+    ) {
+        return ticketAnalysisService.updateReviewStatus(analysisId, request);
     }
 }
