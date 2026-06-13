@@ -35,6 +35,7 @@ The focus is not building a chatbot. The focus is building a production-aware ba
 * Detail endpoint for inspecting saved analysis
 * Review status update endpoint
 * Consistent API error response handling
+* OpenAPI documentation with Swagger UI
 * Dockerfile for containerized backend builds
 * Docker Compose setup for app and PostgreSQL
 * Controller, parser, validator, service, and review decision tests
@@ -51,11 +52,28 @@ The focus is not building a chatbot. The focus is building a production-aware ba
 * Docker Compose
 * Ollama
 * Qwen3 local model
+* Springdoc OpenAPI
 * JUnit 5
 * MockMvc
 * Mockito
 * Lombok
 * GitHub Actions CI
+
+## API Documentation
+
+After starting the application, interactive API documentation is available through Swagger UI:
+
+```text
+http://localhost:8080/swagger-ui.html
+```
+
+The raw OpenAPI specification is available at:
+
+```text
+http://localhost:8080/v3/api-docs
+```
+
+This is useful for inspecting the ticket analysis and review endpoints without needing a separate frontend.
 
 ## API Endpoints
 
@@ -230,6 +248,12 @@ Health check:
 curl http://localhost:8080/actuator/health
 ```
 
+Swagger UI:
+
+```text
+http://localhost:8080/swagger-ui.html
+```
+
 ## Run With Ollama Without Docker
 
 Make sure Ollama is running and the model is available locally.
@@ -376,6 +400,7 @@ This project demonstrates:
 * Auditability through raw model output and timestamps
 * Review decisioning for uncertain AI results
 * Consistent API error handling
+* OpenAPI documentation for API inspection
 * Dockerized backend execution
 * Testable backend behavior around LLM output
 
