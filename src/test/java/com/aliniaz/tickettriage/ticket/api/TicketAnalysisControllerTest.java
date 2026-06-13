@@ -65,7 +65,11 @@ class TicketAnalysisControllerTest {
         mockMvc.perform(post("/api/tickets/analyze")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isBadRequest());
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Request validation failed."))
+                .andExpect(jsonPath("$.path").value("/api/tickets/analyze"))
+                .andExpect(jsonPath("$.validationErrors[0].field").value("subject"));
     }
 
     @Test
@@ -133,7 +137,11 @@ class TicketAnalysisControllerTest {
     @Test
     void getAnalysisReturnsNotFoundForUnknownId() throws Exception {
         mockMvc.perform(get("/api/tickets/analyses/{analysisId}", 999999L))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").value("Ticket analysis not found"))
+                .andExpect(jsonPath("$.path").value("/api/tickets/analyses/999999"));
     }
 
     @Test
@@ -287,5 +295,17 @@ class TicketAnalysisControllerTest {
                 .andExpect(jsonPath("$.reviewReason").value("Returned to review queue for correction."))
                 .andExpect(jsonPath("$.reviewedAt").isEmpty())
                 .andExpect(jsonPath("$.reviewedBy").isEmpty());
+    }
+
+    @Test
+    void listAnalysesRejectsInvalidReviewStatus() throws Exception {
+        mockMvc.perform(get("/api/tickets/analyses")
+                        .param("reviewStatus", "INVALID_STATUS"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Invalid request parameter value."))
+                .andExpect(jsonPath("$.path").value("/api/tickets/analyses"))
+                .andExpect(jsonPath("$.validationErrors[0].field").value("reviewStatus"));
     }
 }
