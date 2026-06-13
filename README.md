@@ -126,6 +126,12 @@ The raw model output is stored separately from the validated analysis result so 
 * Dockerfile for containerized backend builds
 * Docker Compose setup for app and PostgreSQL
 * Controller, parser, validator, service, and review decision tests
+* Lightweight React frontend review console
+* Frontend ticket analysis form
+* Review queue filtering and pagination
+* Analysis detail view
+* Review status update UI
+* Frontend build validation in GitHub Actions CI
 
 ## Tech Stack
 
@@ -145,6 +151,9 @@ The raw model output is stored separately from the validated analysis result so 
 * Mockito
 * Lombok
 * GitHub Actions CI
+* React
+* TypeScript
+* Vite
 
 ## API Documentation
 
@@ -490,5 +499,7 @@ This project demonstrates:
 * OpenAPI documentation for API inspection
 * Dockerized backend execution
 * Testable backend behavior around LLM output
+* Lightweight review UI over backend review workflows
+* CI validation for both backend tests and frontend build
 
 The project is intentionally backend-first. A lightweight review UI can be added later as a thin layer over the existing API.
