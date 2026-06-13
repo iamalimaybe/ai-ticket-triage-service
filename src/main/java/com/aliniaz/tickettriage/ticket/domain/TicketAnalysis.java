@@ -69,6 +69,9 @@ public class TicketAnalysis {
     @Column(name = "raw_model_output", columnDefinition = "TEXT")
     private String rawModelOutput;
 
+    @Column(name = "model_confidence")
+    private Double modelConfidence;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private Instant createdAt;

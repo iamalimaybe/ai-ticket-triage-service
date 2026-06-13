@@ -20,6 +20,7 @@ class DefaultTicketTriageAnalysisValidatorTest {
         TicketTriageAnalysis analysis = new TicketTriageAnalysis(
                 "deterministic-stub",
                 null,
+                null,
                 AnalysisStatus.VALIDATED,
                 TicketCategory.ACCOUNT_ACCESS,
                 TicketPriority.URGENT,
@@ -42,6 +43,7 @@ class DefaultTicketTriageAnalysisValidatorTest {
                 null,
                 null,
                 null,
+                null,
                 "",
                 null,
                 null
@@ -59,5 +61,25 @@ class DefaultTicketTriageAnalysisValidatorTest {
                 "missingInformation list is required.",
                 "validationMessages list is required."
         );
+    }
+
+    @Test
+    void validateReturnsInvalidWhenModelConfidenceIsOutsideAllowedRange() {
+        TicketTriageAnalysis analysis = new TicketTriageAnalysis(
+                "llm-json-parser",
+                "{\"category\":\"ACCOUNT_ACCESS\"}",
+                1.25,
+                AnalysisStatus.VALIDATED,
+                TicketCategory.ACCOUNT_ACCESS,
+                TicketPriority.HIGH,
+                "Customer needs help accessing their account.",
+                List.of(),
+                List.of("Model output parsed successfully.")
+        );
+
+        TicketTriageAnalysisValidationResult result = validator.validate(analysis);
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.messages()).contains("modelConfidence must be between 0.0 and 1.0.");
     }
 }

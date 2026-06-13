@@ -35,6 +35,7 @@ class DefaultTicketTriageOutputParserTest {
         assertThat(analysis.customerIntent()).isEqualTo("Customer needs help accessing their account.");
         assertThat(analysis.missingInformation()).isEmpty();
         assertThat(analysis.validationMessages()).contains("Model output parsed successfully.");
+        assertThat(analysis.modelConfidence()).isEqualTo(0.91);
     }
 
     @Test

@@ -35,9 +35,14 @@ public class DefaultTicketTriageOutputParser implements TicketTriageOutputParser
         try {
             LlmTicketTriageOutput output = objectMapper.readValue(rawOutput, LlmTicketTriageOutput.class);
 
+            if (output.confidence() == null || output.confidence() < 0.0 || output.confidence() > 1.0) {
+                return failedAnalysis(rawOutput, "Model output confidence must be between 0.0 and 1.0.");
+            }
+
             return new TicketTriageAnalysis(
                     ANALYSIS_SOURCE,
                     rawOutput,
+                    output.confidence(),
                     AnalysisStatus.VALIDATED,
                     parseCategory(output.category()),
                     parsePriority(output.priority()),
@@ -74,6 +79,7 @@ public class DefaultTicketTriageOutputParser implements TicketTriageOutputParser
         return new TicketTriageAnalysis(
                 ANALYSIS_SOURCE,
                 rawOutput,
+                null,
                 AnalysisStatus.FAILED,
                 TicketCategory.OTHER,
                 TicketPriority.MEDIUM,

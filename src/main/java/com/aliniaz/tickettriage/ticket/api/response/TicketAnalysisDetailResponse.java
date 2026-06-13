@@ -14,6 +14,7 @@ public record TicketAnalysisDetailResponse(
         String customerId,
         String analysisSource,
         String rawModelOutput,
+        Double modelConfidence,
         AnalysisStatus status,
         TicketCategory category,
         TicketPriority priority,

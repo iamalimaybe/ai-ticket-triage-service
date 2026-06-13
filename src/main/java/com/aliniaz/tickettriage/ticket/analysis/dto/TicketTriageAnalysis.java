@@ -9,6 +9,7 @@ import java.util.List;
 public record TicketTriageAnalysis(
         String analysisSource,
         String rawModelOutput,
+        Double modelConfidence,
         AnalysisStatus status,
         TicketCategory category,
         TicketPriority priority,

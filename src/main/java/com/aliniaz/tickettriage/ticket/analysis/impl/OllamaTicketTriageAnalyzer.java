@@ -40,6 +40,7 @@ public class OllamaTicketTriageAnalyzer implements TicketTriageAnalyzer {
             return new TicketTriageAnalysis(
                     "ollama-analyzer",
                     null,
+                    null,
                     AnalysisStatus.FAILED,
                     TicketCategory.OTHER,
                     TicketPriority.MEDIUM,

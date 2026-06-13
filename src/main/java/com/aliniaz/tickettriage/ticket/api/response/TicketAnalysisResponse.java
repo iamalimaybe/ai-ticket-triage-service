@@ -9,6 +9,7 @@ import java.util.List;
 public record TicketAnalysisResponse(
         Long analysisId,
         String analysisSource,
+        Double modelConfidence,
         AnalysisStatus status,
         TicketCategory category,
         TicketPriority priority,

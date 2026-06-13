@@ -44,6 +44,11 @@ public class DefaultTicketTriageAnalysisValidator implements TicketTriageAnalysi
             messages.add("customerIntent is required.");
         }
 
+        if (analysis.modelConfidence() != null
+                && (analysis.modelConfidence() < 0.0 || analysis.modelConfidence() > 1.0)) {
+            messages.add("modelConfidence must be between 0.0 and 1.0.");
+        }
+
         if (analysis.missingInformation() == null) {
             messages.add("missingInformation list is required.");
         }

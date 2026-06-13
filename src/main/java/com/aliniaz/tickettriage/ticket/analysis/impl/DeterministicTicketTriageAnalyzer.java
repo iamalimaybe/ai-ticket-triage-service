@@ -35,6 +35,7 @@ public class DeterministicTicketTriageAnalyzer implements TicketTriageAnalyzer {
         return new TicketTriageAnalysis(
                 "deterministic-stub",
                 null,
+                null,
                 AnalysisStatus.VALIDATED,
                 category,
                 priority,

@@ -53,6 +53,7 @@ public class TicketAnalysisServiceImpl implements TicketAnalysisService {
                 .customerId(request.customerId())
                 .analysisSource(persistableAnalysis.analysisSource())
                 .rawModelOutput(persistableAnalysis.rawModelOutput())
+                .modelConfidence(persistableAnalysis.modelConfidence())
                 .status(persistableAnalysis.status())
                 .category(persistableAnalysis.category())
                 .priority(persistableAnalysis.priority())
@@ -77,6 +78,7 @@ public class TicketAnalysisServiceImpl implements TicketAnalysisService {
         return new TicketTriageAnalysis(
                 analysis == null || isBlank(analysis.analysisSource()) ? "unknown-analyzer" : analysis.analysisSource(),
                 analysis == null ? null : analysis.rawModelOutput(),
+                analysis == null ? null : analysis.modelConfidence(),
                 AnalysisStatus.FAILED,
                 analysis == null || analysis.category() == null ? TicketCategory.OTHER : analysis.category(),
                 analysis == null || analysis.priority() == null ? TicketPriority.MEDIUM : analysis.priority(),
@@ -94,6 +96,7 @@ public class TicketAnalysisServiceImpl implements TicketAnalysisService {
         return new TicketAnalysisResponse(
                 ticketAnalysis.getId(),
                 ticketAnalysis.getAnalysisSource(),
+                ticketAnalysis.getModelConfidence(),
                 ticketAnalysis.getStatus(),
                 ticketAnalysis.getCategory(),
                 ticketAnalysis.getPriority(),
@@ -123,6 +126,7 @@ public class TicketAnalysisServiceImpl implements TicketAnalysisService {
                 ticketAnalysis.getCustomerId(),
                 ticketAnalysis.getAnalysisSource(),
                 ticketAnalysis.getRawModelOutput(),
+                ticketAnalysis.getModelConfidence(),
                 ticketAnalysis.getStatus(),
                 ticketAnalysis.getCategory(),
                 ticketAnalysis.getPriority(),
