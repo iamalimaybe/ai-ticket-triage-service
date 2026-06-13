@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai-ticket-triage-postgres
+    environment:
+      POSTGRES_DB: ticket_triage
+      POSTGRES_USER: ticket_triage
+      POSTGRES_PASSWORD: ticket_triage
+    ports:
+      - "5433:5432"
+    volumes:
+      - ticket-triage-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  ticket-triage-postgres-data:

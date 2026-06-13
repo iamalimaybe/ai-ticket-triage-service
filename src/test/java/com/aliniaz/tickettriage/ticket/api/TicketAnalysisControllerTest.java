@@ -33,7 +33,7 @@ class TicketAnalysisControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.analysisId").value(1))
+                .andExpect(jsonPath("$.analysisId", notNullValue()))
                 .andExpect(jsonPath("$.analysisSource").value("deterministic-stub"))
                 .andExpect(jsonPath("$.status").value("VALIDATED"))
                 .andExpect(jsonPath("$.category").value("ACCOUNT_ACCESS"))

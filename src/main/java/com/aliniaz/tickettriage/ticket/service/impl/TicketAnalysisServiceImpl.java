@@ -3,10 +3,13 @@ package com.aliniaz.tickettriage.ticket.service.impl;
 import com.aliniaz.tickettriage.ticket.api.request.TicketAnalysisRequest;
 import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisResponse;
 import com.aliniaz.tickettriage.ticket.domain.AnalysisStatus;
+import com.aliniaz.tickettriage.ticket.domain.TicketAnalysis;
 import com.aliniaz.tickettriage.ticket.domain.TicketCategory;
 import com.aliniaz.tickettriage.ticket.domain.TicketPriority;
+import com.aliniaz.tickettriage.ticket.repository.TicketAnalysisRepository;
 import com.aliniaz.tickettriage.ticket.service.TicketAnalysisService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,23 +20,53 @@ import static com.aliniaz.tickettriage.ticket.utilities.StringUtil.normalize;
 @Service
 public class TicketAnalysisServiceImpl implements TicketAnalysisService {
 
+    private final TicketAnalysisRepository ticketAnalysisRepository;
+
+    public TicketAnalysisServiceImpl(TicketAnalysisRepository ticketAnalysisRepository) {
+        this.ticketAnalysisRepository = ticketAnalysisRepository;
+    }
+
     @Override
+    @Transactional
     public TicketAnalysisResponse analyze(TicketAnalysisRequest request) {
         String normalizedText = normalize(request.subject() + " " + request.body());
 
         TicketCategory category = classify(normalizedText);
         TicketPriority priority = assignPriority(normalizedText, category);
         List<String> missingInformation = detectMissingInformation(request, category);
+        List<String> validationMessages = List.of(
+                "Request passed API validation.",
+                "LLM integration has not been added yet."
+        );
 
-        return new TicketAnalysisResponse(
-                1L,
+        TicketAnalysis ticketAnalysis = new TicketAnalysis(
+                request.subject(),
+                request.body(),
+                request.customerId(),
                 "deterministic-stub",
                 AnalysisStatus.VALIDATED,
                 category,
                 priority,
                 describeIntent(category),
                 missingInformation,
-                List.of("Request passed API validation.", "LLM integration has not been added yet.")
+                validationMessages
+        );
+
+        TicketAnalysis savedTicketAnalysis = ticketAnalysisRepository.save(ticketAnalysis);
+
+        return toResponse(savedTicketAnalysis);
+    }
+
+    private TicketAnalysisResponse toResponse(TicketAnalysis ticketAnalysis) {
+        return new TicketAnalysisResponse(
+                ticketAnalysis.getId(),
+                ticketAnalysis.getAnalysisSource(),
+                ticketAnalysis.getStatus(),
+                ticketAnalysis.getCategory(),
+                ticketAnalysis.getPriority(),
+                ticketAnalysis.getCustomerIntent(),
+                ticketAnalysis.getMissingInformation(),
+                ticketAnalysis.getValidationMessages()
         );
     }
 
