@@ -2,13 +2,12 @@ package com.aliniaz.tickettriage.ticket.service.impl;
 
 import com.aliniaz.tickettriage.ticket.analysis.TicketTriageAnalyzer;
 import com.aliniaz.tickettriage.ticket.analysis.dto.TicketTriageAnalysis;
+import com.aliniaz.tickettriage.ticket.analysis.review.config.TicketReviewProperties;
+import com.aliniaz.tickettriage.ticket.analysis.review.impl.DefaultTicketReviewDecisionService;
 import com.aliniaz.tickettriage.ticket.analysis.validator.impl.DefaultTicketTriageAnalysisValidator;
 import com.aliniaz.tickettriage.ticket.api.request.TicketAnalysisRequest;
 import com.aliniaz.tickettriage.ticket.api.response.TicketAnalysisResponse;
-import com.aliniaz.tickettriage.ticket.domain.AnalysisStatus;
-import com.aliniaz.tickettriage.ticket.domain.TicketAnalysis;
-import com.aliniaz.tickettriage.ticket.domain.TicketCategory;
-import com.aliniaz.tickettriage.ticket.domain.TicketPriority;
+import com.aliniaz.tickettriage.ticket.domain.*;
 import com.aliniaz.tickettriage.ticket.repository.TicketAnalysisRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -21,11 +20,15 @@ class TicketAnalysisServiceImplTest {
     private final TicketAnalysisRepository ticketAnalysisRepository = mock(TicketAnalysisRepository.class);
     private final TicketTriageAnalyzer ticketTriageAnalyzer = mock(TicketTriageAnalyzer.class);
     private final DefaultTicketTriageAnalysisValidator validator = new DefaultTicketTriageAnalysisValidator();
+    private final TicketReviewProperties ticketReviewProperties = new TicketReviewProperties();
+    private final DefaultTicketReviewDecisionService reviewDecisionService =
+            new DefaultTicketReviewDecisionService(ticketReviewProperties);
 
     private final TicketAnalysisServiceImpl service = new TicketAnalysisServiceImpl(
             ticketAnalysisRepository,
             ticketTriageAnalyzer,
-            validator
+            validator,
+            reviewDecisionService
     );
 
     @Test
@@ -60,6 +63,8 @@ class TicketAnalysisServiceImplTest {
 
         assertThat(savedEntity.getAnalysisSource()).isEqualTo("unknown-analyzer");
         assertThat(savedEntity.getStatus()).isEqualTo(AnalysisStatus.FAILED);
+        assertThat(savedEntity.getReviewStatus()).isEqualTo(ReviewStatus.NEEDS_REVIEW);
+        assertThat(savedEntity.getReviewReason()).isEqualTo("Analysis failed validation.");
         assertThat(savedEntity.getCategory()).isEqualTo(TicketCategory.OTHER);
         assertThat(savedEntity.getPriority()).isEqualTo(TicketPriority.MEDIUM);
         assertThat(savedEntity.getCustomerIntent()).isEqualTo("Analysis failed validation and requires manual review.");

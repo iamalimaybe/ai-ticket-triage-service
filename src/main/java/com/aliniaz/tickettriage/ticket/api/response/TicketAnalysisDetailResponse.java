@@ -1,6 +1,7 @@
 package com.aliniaz.tickettriage.ticket.api.response;
 
 import com.aliniaz.tickettriage.ticket.domain.AnalysisStatus;
+import com.aliniaz.tickettriage.ticket.domain.ReviewStatus;
 import com.aliniaz.tickettriage.ticket.domain.TicketCategory;
 import com.aliniaz.tickettriage.ticket.domain.TicketPriority;
 
@@ -15,6 +16,8 @@ public record TicketAnalysisDetailResponse(
         String analysisSource,
         String rawModelOutput,
         Double modelConfidence,
+        ReviewStatus reviewStatus,
+        String reviewReason,
         AnalysisStatus status,
         TicketCategory category,
         TicketPriority priority,

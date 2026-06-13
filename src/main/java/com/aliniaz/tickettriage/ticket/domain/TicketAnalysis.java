@@ -72,6 +72,13 @@ public class TicketAnalysis {
     @Column(name = "model_confidence")
     private Double modelConfidence;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "review_status", nullable = false, length = 40)
+    private ReviewStatus reviewStatus;
+
+    @Column(name = "review_reason", length = 500)
+    private String reviewReason;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private Instant createdAt;

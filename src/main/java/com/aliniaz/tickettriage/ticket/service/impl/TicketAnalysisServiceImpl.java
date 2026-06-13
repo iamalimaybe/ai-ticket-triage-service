@@ -2,6 +2,8 @@ package com.aliniaz.tickettriage.ticket.service.impl;
 
 import com.aliniaz.tickettriage.ticket.analysis.TicketTriageAnalyzer;
 import com.aliniaz.tickettriage.ticket.analysis.dto.TicketTriageAnalysis;
+import com.aliniaz.tickettriage.ticket.analysis.review.TicketReviewDecisionService;
+import com.aliniaz.tickettriage.ticket.analysis.review.dto.TicketReviewDecision;
 import com.aliniaz.tickettriage.ticket.analysis.validator.TicketTriageAnalysisValidator;
 import com.aliniaz.tickettriage.ticket.analysis.validator.dto.TicketTriageAnalysisValidationResult;
 import com.aliniaz.tickettriage.ticket.api.request.TicketAnalysisRequest;
@@ -29,15 +31,18 @@ public class TicketAnalysisServiceImpl implements TicketAnalysisService {
     private final TicketAnalysisRepository ticketAnalysisRepository;
     private final TicketTriageAnalyzer ticketTriageAnalyzer;
     private final TicketTriageAnalysisValidator ticketTriageAnalysisValidator;
+    private final TicketReviewDecisionService ticketReviewDecisionService;
 
     public TicketAnalysisServiceImpl(
             TicketAnalysisRepository ticketAnalysisRepository,
             TicketTriageAnalyzer ticketTriageAnalyzer,
-            TicketTriageAnalysisValidator ticketTriageAnalysisValidator
+            TicketTriageAnalysisValidator ticketTriageAnalysisValidator,
+            TicketReviewDecisionService ticketReviewDecisionService
     ) {
         this.ticketAnalysisRepository = ticketAnalysisRepository;
         this.ticketTriageAnalyzer = ticketTriageAnalyzer;
         this.ticketTriageAnalysisValidator = ticketTriageAnalysisValidator;
+        this.ticketReviewDecisionService = ticketReviewDecisionService;
     }
 
     @Override
@@ -46,6 +51,7 @@ public class TicketAnalysisServiceImpl implements TicketAnalysisService {
         TicketTriageAnalysis analysis = ticketTriageAnalyzer.analyze(request);
         TicketTriageAnalysisValidationResult validationResult = ticketTriageAnalysisValidator.validate(analysis);
         TicketTriageAnalysis persistableAnalysis = toPersistableAnalysis(analysis, validationResult);
+        TicketReviewDecision reviewDecision = ticketReviewDecisionService.decide(persistableAnalysis);
 
         TicketAnalysis ticketAnalysis = TicketAnalysis.builder()
                 .subject(request.subject())
@@ -54,6 +60,8 @@ public class TicketAnalysisServiceImpl implements TicketAnalysisService {
                 .analysisSource(persistableAnalysis.analysisSource())
                 .rawModelOutput(persistableAnalysis.rawModelOutput())
                 .modelConfidence(persistableAnalysis.modelConfidence())
+                .reviewStatus(reviewDecision.reviewStatus())
+                .reviewReason(reviewDecision.reviewReason())
                 .status(persistableAnalysis.status())
                 .category(persistableAnalysis.category())
                 .priority(persistableAnalysis.priority())
@@ -97,6 +105,8 @@ public class TicketAnalysisServiceImpl implements TicketAnalysisService {
                 ticketAnalysis.getId(),
                 ticketAnalysis.getAnalysisSource(),
                 ticketAnalysis.getModelConfidence(),
+                ticketAnalysis.getReviewStatus(),
+                ticketAnalysis.getReviewReason(),
                 ticketAnalysis.getStatus(),
                 ticketAnalysis.getCategory(),
                 ticketAnalysis.getPriority(),
@@ -127,6 +137,8 @@ public class TicketAnalysisServiceImpl implements TicketAnalysisService {
                 ticketAnalysis.getAnalysisSource(),
                 ticketAnalysis.getRawModelOutput(),
                 ticketAnalysis.getModelConfidence(),
+                ticketAnalysis.getReviewStatus(),
+                ticketAnalysis.getReviewReason(),
                 ticketAnalysis.getStatus(),
                 ticketAnalysis.getCategory(),
                 ticketAnalysis.getPriority(),
