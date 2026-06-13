@@ -102,6 +102,16 @@ function App() {
     const [analysisDetailError, setAnalysisDetailError] = useState<string | null>(null)
     const [isLoadingAnalysisDetail, setIsLoadingAnalysisDetail] = useState(false)
 
+    const [reviewUpdateForm, setReviewUpdateForm] = useState({
+        reviewStatus: 'NEEDS_REVIEW' as ReviewStatus,
+        reviewReason: '',
+        reviewedBy: '',
+    })
+
+    const [reviewUpdateError, setReviewUpdateError] = useState<string | null>(null)
+    const [reviewUpdateSuccess, setReviewUpdateSuccess] = useState<string | null>(null)
+    const [isUpdatingReview, setIsUpdatingReview] = useState(false)
+
     const detailSectionRef = useRef<HTMLElement | null>(null)
 
     async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
@@ -181,6 +191,9 @@ function App() {
 
             const data = (await response.json()) as AnalysisDetailResponse
             setAnalysisDetail(data)
+            syncReviewUpdateForm(data)
+            setReviewUpdateError(null)
+            setReviewUpdateSuccess(null)
 
             window.setTimeout(() => {
                 const detailSection = detailSectionRef.current
@@ -202,6 +215,52 @@ function App() {
             )
         } finally {
             setIsLoadingAnalysisDetail(false)
+        }
+    }
+
+    async function handleReviewUpdate(event: SubmitEvent<HTMLFormElement>) {
+        event.preventDefault()
+
+        if (!analysisDetail) {
+            return
+        }
+
+        setIsUpdatingReview(true)
+        setReviewUpdateError(null)
+        setReviewUpdateSuccess(null)
+
+        try {
+            const response = await fetch(`/api/tickets/analyses/${analysisDetail.analysisId}/review`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    reviewStatus: reviewUpdateForm.reviewStatus,
+                    reviewReason: reviewUpdateForm.reviewReason.trim() || null,
+                    reviewedBy: reviewUpdateForm.reviewedBy.trim() || null,
+                }),
+            })
+
+            if (!response.ok) {
+                throw new Error(await readErrorMessage(response))
+            }
+
+            const updatedDetail = (await response.json()) as AnalysisDetailResponse
+
+            setAnalysisDetail(updatedDetail)
+            syncReviewUpdateForm(updatedDetail)
+            setReviewUpdateSuccess('Review status updated.')
+
+            if (reviewQueue) {
+                await loadReviewQueue(reviewQueuePage, reviewQueueSize, reviewStatusFilter)
+            }
+        } catch (err) {
+            setReviewUpdateError(
+                err instanceof Error ? err.message : 'Unexpected error while updating review status.',
+            )
+        } finally {
+            setIsUpdatingReview(false)
         }
     }
 
@@ -246,12 +305,22 @@ function App() {
     function clearAnalysisDetail() {
         setAnalysisDetail(null)
         setAnalysisDetailError(null)
+        setReviewUpdateError(null)
+        setReviewUpdateSuccess(null)
     }
 
     function scrollToTop() {
         window.scrollTo({
             top: 0,
             behavior: 'smooth',
+        })
+    }
+
+    function syncReviewUpdateForm(detail: AnalysisDetailResponse) {
+        setReviewUpdateForm({
+            reviewStatus: detail.reviewStatus as ReviewStatus,
+            reviewReason: detail.reviewReason ?? '',
+            reviewedBy: detail.reviewedBy ?? '',
         })
     }
 
@@ -546,6 +615,65 @@ function App() {
                         />
                         <ResultItem label="Created" value={formatDateTime(analysisDetail.createdAt)} />
                         <ResultItem label="Updated" value={formatDateTime(analysisDetail.updatedAt)} />
+
+                        <div className="detail-section review-update-section">
+                            <h3>Update Review Status</h3>
+
+                            <form className="review-update-form" onSubmit={handleReviewUpdate}>
+                                <label>
+                                    Review status
+                                    <select
+                                        value={reviewUpdateForm.reviewStatus}
+                                        onChange={(event) =>
+                                            setReviewUpdateForm({
+                                                ...reviewUpdateForm,
+                                                reviewStatus: event.target.value as ReviewStatus,
+                                            })
+                                        }
+                                    >
+                                        <option value="NEEDS_REVIEW">Needs Review</option>
+                                        <option value="REVIEWED">Reviewed</option>
+                                        <option value="NOT_REQUIRED">Not Required</option>
+                                    </select>
+                                </label>
+
+                                <label>
+                                    Review reason
+                                    <textarea
+                                        value={reviewUpdateForm.reviewReason}
+                                        onChange={(event) =>
+                                            setReviewUpdateForm({
+                                                ...reviewUpdateForm,
+                                                reviewReason: event.target.value,
+                                            })
+                                        }
+                                        rows={3}
+                                        placeholder="Add a short review note."
+                                    />
+                                </label>
+
+                                <label>
+                                    Reviewed by
+                                    <input
+                                        value={reviewUpdateForm.reviewedBy}
+                                        onChange={(event) =>
+                                            setReviewUpdateForm({
+                                                ...reviewUpdateForm,
+                                                reviewedBy: event.target.value,
+                                            })
+                                        }
+                                        placeholder="local-reviewer"
+                                    />
+                                </label>
+
+                                <button type="submit" disabled={isUpdatingReview}>
+                                    {isUpdatingReview ? 'Updating...' : 'Update Review'}
+                                </button>
+                            </form>
+
+                            {reviewUpdateSuccess && <p className="success-message">{reviewUpdateSuccess}</p>}
+                            {reviewUpdateError && <pre className="error-box">{reviewUpdateError}</pre>}
+                        </div>
 
                         <div className="detail-section">
                             <h3>Original Ticket</h3>
