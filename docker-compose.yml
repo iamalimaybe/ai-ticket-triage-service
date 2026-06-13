@@ -3,13 +3,37 @@ services:
     image: postgres:16-alpine
     container_name: ai-ticket-triage-postgres
     environment:
-      POSTGRES_DB: ticket_triage
-      POSTGRES_USER: ticket_triage
-      POSTGRES_PASSWORD: ticket_triage
+      POSTGRES_DB: ${POSTGRES_DB:-ticket_triage}
+      POSTGRES_USER: ${POSTGRES_USER:-ticket_triage}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ticket_triage}
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - ticket-triage-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ticket_triage} -d ${POSTGRES_DB:-ticket_triage}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-ticket-triage-app
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-ticket_triage}
+      DB_USERNAME: ${POSTGRES_USER:-ticket_triage}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ticket_triage}
+      TICKET_TRIAGE_ANALYZER_MODE: ${TICKET_TRIAGE_ANALYZER_MODE:-deterministic}
+      TICKET_TRIAGE_REVIEW_CONFIDENCE_THRESHOLD: ${TICKET_TRIAGE_REVIEW_CONFIDENCE_THRESHOLD:-0.70}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   ticket-triage-postgres-data:
