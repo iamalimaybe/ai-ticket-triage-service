@@ -1,5 +1,7 @@
-import { type SubmitEvent, useState } from 'react'
+import { type ChangeEvent, type SubmitEvent, useState } from 'react'
 import './App.css'
+
+type ReviewStatus = 'NEEDS_REVIEW' | 'REVIEWED' | 'NOT_REQUIRED'
 
 type AnalysisResponse = {
     analysisId: number
@@ -21,6 +23,41 @@ type AnalyzeTicketRequest = {
     customerId: string
 }
 
+type ReviewQueueItem = {
+    analysisId: number
+    subject: string
+    customerId: string
+    analysisSource: string
+    modelConfidence: number | null
+    reviewStatus: string
+    reviewReason: string | null
+    status: string
+    category: string | null
+    priority: string | null
+    createdAt: string
+    updatedAt: string
+}
+
+type ReviewQueueResponse = {
+    items: ReviewQueueItem[]
+    page: number
+    size: number
+    totalElements: number
+    totalPages: number
+}
+
+type ApiErrorResponse = {
+    timestamp?: string
+    status?: number
+    error?: string
+    message?: string
+    path?: string
+    validationErrors?: {
+        field: string
+        message: string
+    }[]
+}
+
 function App() {
     const [form, setForm] = useState<AnalyzeTicketRequest>({
         subject: 'Cannot login',
@@ -29,14 +66,21 @@ function App() {
     })
 
     const [result, setResult] = useState<AnalysisResponse | null>(null)
-    const [error, setError] = useState<string | null>(null)
+    const [analyzeError, setAnalyzeError] = useState<string | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
+
+    const [reviewQueue, setReviewQueue] = useState<ReviewQueueResponse | null>(null)
+    const [reviewQueueError, setReviewQueueError] = useState<string | null>(null)
+    const [isLoadingReviewQueue, setIsLoadingReviewQueue] = useState(false)
+    const [reviewStatusFilter, setReviewStatusFilter] = useState<ReviewStatus>('NEEDS_REVIEW')
+    const [reviewQueuePage, setReviewQueuePage] = useState(0)
+    const [reviewQueueSize, setReviewQueueSize] = useState(10)
 
     async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
         event.preventDefault()
 
         setIsSubmitting(true)
-        setError(null)
+        setAnalyzeError(null)
         setResult(null)
 
         try {
@@ -49,18 +93,87 @@ function App() {
             })
 
             if (!response.ok) {
-                const errorBody = await response.text()
-                throw new Error(errorBody || `Request failed with status ${response.status}`)
+                throw new Error(await readErrorMessage(response))
             }
 
             const data = (await response.json()) as AnalysisResponse
             setResult(data)
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Unexpected error while analyzing ticket.')
+            setAnalyzeError(err instanceof Error ? err.message : 'Unexpected error while analyzing ticket.')
         } finally {
             setIsSubmitting(false)
         }
     }
+
+    async function loadReviewQueue(
+        page = reviewQueuePage,
+        size = reviewQueueSize,
+        status = reviewStatusFilter,
+    ) {
+        setIsLoadingReviewQueue(true)
+        setReviewQueueError(null)
+
+        try {
+            const query = new URLSearchParams({
+                reviewStatus: status,
+                page: String(page),
+                size: String(size),
+            })
+
+            const response = await fetch(`/api/tickets/analyses?${query.toString()}`)
+
+            if (!response.ok) {
+                throw new Error(await readErrorMessage(response))
+            }
+
+            const data = (await response.json()) as ReviewQueueResponse
+            setReviewQueue(data)
+            setReviewQueuePage(data.page)
+            setReviewQueueSize(data.size)
+        } catch (err) {
+            setReviewQueueError(
+                err instanceof Error ? err.message : 'Unexpected error while loading review queue.',
+            )
+        } finally {
+            setIsLoadingReviewQueue(false)
+        }
+    }
+
+    async function handleReviewStatusChange(event: ChangeEvent<HTMLSelectElement>) {
+        const nextStatus = event.target.value as ReviewStatus
+        setReviewStatusFilter(nextStatus)
+        setReviewQueuePage(0)
+
+        if (reviewQueue) {
+            await loadReviewQueue(0, reviewQueueSize, nextStatus)
+        }
+    }
+
+    async function handlePageSizeChange(event: ChangeEvent<HTMLSelectElement>) {
+        const nextSize = Number(event.target.value)
+        setReviewQueueSize(nextSize)
+        setReviewQueuePage(0)
+
+        if (reviewQueue) {
+            await loadReviewQueue(0, nextSize, reviewStatusFilter)
+        }
+    }
+
+    async function goToPreviousPage() {
+        const previousPage = Math.max(reviewQueuePage - 1, 0)
+        await loadReviewQueue(previousPage, reviewQueueSize, reviewStatusFilter)
+    }
+
+    async function goToNextPage() {
+        if (!reviewQueue || reviewQueuePage >= reviewQueue.totalPages - 1) {
+            return
+        }
+
+        await loadReviewQueue(reviewQueuePage + 1, reviewQueueSize, reviewStatusFilter)
+    }
+
+    const canGoPrevious = reviewQueuePage > 0
+    const canGoNext = reviewQueue ? reviewQueuePage < reviewQueue.totalPages - 1 : false
 
     return (
         <main className="app-shell">
@@ -113,13 +226,11 @@ function App() {
                 <section className="card result-card">
                     <h2>Analysis Result</h2>
 
-                    {!result && !error && (
+                    {!result && !analyzeError && (
                         <p className="muted">Submit a ticket to see the persisted triage result.</p>
                     )}
 
-                    {error && (
-                        <pre className="error-box">{error}</pre>
-                    )}
+                    {analyzeError && <pre className="error-box">{analyzeError}</pre>}
 
                     {result && (
                         <div className="result-grid">
@@ -168,17 +279,161 @@ function App() {
                     )}
                 </section>
             </section>
+
+            <section className="card review-queue-card">
+                <div className="section-header">
+                    <div>
+                        <h2>Review Queue</h2>
+                        <p className="muted">
+                            Load saved analyses by review status and inspect records that need human review.
+                        </p>
+                    </div>
+
+                    <button type="button" onClick={() => loadReviewQueue(0)} disabled={isLoadingReviewQueue}>
+                        {isLoadingReviewQueue ? 'Loading...' : 'Load Queue'}
+                    </button>
+                </div>
+
+                {reviewQueue && (
+                    <div className="queue-controls">
+                        <label>
+                            Review status
+                            <select value={reviewStatusFilter} onChange={handleReviewStatusChange}>
+                                <option value="NEEDS_REVIEW">Needs Review</option>
+                                <option value="REVIEWED">Reviewed</option>
+                                <option value="NOT_REQUIRED">Not Required</option>
+                            </select>
+                        </label>
+
+                        <label>
+                            Records per page
+                            <select value={reviewQueueSize} onChange={handlePageSizeChange}>
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                                <option value={20}>20</option>
+                                <option value={50}>50</option>
+                            </select>
+                        </label>
+                    </div>
+                )}
+
+                {reviewQueueError && <pre className="error-box">{reviewQueueError}</pre>}
+
+                {reviewQueue && (
+                    <>
+                        <div className="queue-summary-row">
+                            <p className="queue-summary">
+                                Showing {reviewQueue.items.length} of {reviewQueue.totalElements} item(s)
+                            </p>
+
+                            <div className="pagination-controls">
+                                <button
+                                    type="button"
+                                    className="secondary-button"
+                                    onClick={goToPreviousPage}
+                                    disabled={!canGoPrevious || isLoadingReviewQueue}
+                                >
+                                    Previous
+                                </button>
+
+                                <span>
+                  Page {reviewQueue.totalPages === 0 ? 0 : reviewQueue.page + 1} of{' '}
+                                    {reviewQueue.totalPages}
+                </span>
+
+                                <button
+                                    type="button"
+                                    className="secondary-button"
+                                    onClick={goToNextPage}
+                                    disabled={!canGoNext || isLoadingReviewQueue}
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+
+                        {reviewQueue.items.length === 0 ? (
+                            <p className="muted">No items found for this review status.</p>
+                        ) : (
+                            <div className="queue-table-wrapper">
+                                <table className="queue-table">
+                                    <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Subject</th>
+                                        <th>Status</th>
+                                        <th>Review Status</th>
+                                        <th>Category</th>
+                                        <th>Priority</th>
+                                        <th>Confidence</th>
+                                        <th>Reason</th>
+                                        <th>Created</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {reviewQueue.items.map((item) => (
+                                        <tr key={item.analysisId}>
+                                            <td>{item.analysisId}</td>
+                                            <td className="text-cell">
+                                                <strong>{item.subject}</strong>
+                                                <span>{item.customerId}</span>
+                                            </td>
+                                            <td>{item.status}</td>
+                                            <td>{item.reviewStatus}</td>
+                                            <td>{item.category ?? 'N/A'}</td>
+                                            <td>{item.priority ?? 'N/A'}</td>
+                                            <td>{item.modelConfidence === null ? 'N/A' : item.modelConfidence}</td>
+                                            <td className="reason-cell">{item.reviewReason ?? 'N/A'}</td>
+                                            <td>{formatDateTime(item.createdAt)}</td>
+                                        </tr>
+                                    ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </>
+                )}
+            </section>
         </main>
     )
 }
 
-function ResultItem({ label, value }: { label: string; value: string | number }) {
+function ResultItem({ label, value }: { label: string | number; value: string | number }) {
     return (
         <div className="result-item">
             <span>{label}</span>
             <strong>{value}</strong>
         </div>
     )
+}
+
+async function readErrorMessage(response: Response): Promise<string> {
+    const text = await response.text()
+
+    if (!text) {
+        return `Request failed with status ${response.status}`
+    }
+
+    try {
+        const apiError = JSON.parse(text) as ApiErrorResponse
+
+        if (apiError.validationErrors && apiError.validationErrors.length > 0) {
+            return apiError.validationErrors
+                .map((validationError) => `${validationError.field}: ${validationError.message}`)
+                .join('\n')
+        }
+
+        return apiError.message || text
+    } catch {
+        return text
+    }
+}
+
+function formatDateTime(value: string): string {
+    return new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+    }).format(new Date(value))
 }
 
 export default App
