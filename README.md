@@ -10,7 +10,7 @@ The service accepts support tickets, analyzes them using either a deterministic 
 
 ## Demo Screenshots
 
-The following screenshots are stored in `docs/images/` and illustrate the application running locally.
+The following screenshots show the backend API and frontend review workflow running locally.
 
 ### Swagger UI
 
@@ -18,11 +18,49 @@ Swagger UI exposes the backend API for local inspection and testing without requ
 
 ![Swagger UI](docs/images/swagger-ui.png)
 
-### Ticket Analysis Response
+### Ticket Analysis API Response
 
-This example shows the response returned after submitting a support ticket for analysis, including the structured triage output that is persisted by the system.
+This example shows the response returned after submitting a support ticket for analysis through the backend API.
 
-![Ticket analysis response](docs/images/analyze-ticket-response.png)
+![Analyze ticket response](docs/images/analyze-ticket-response.png)
+
+## Frontend Review Console
+
+A lightweight React frontend was added to demonstrate the backend workflow visually.
+
+The UI is intentionally thin. It does not replace the backend API or Swagger documentation. It shows the main review flow:
+
+```text
+Submit ticket
+View structured analysis
+Load review queue
+Inspect saved analysis detail
+Update review status
+```
+
+### Analyze Ticket
+
+The user can submit a support ticket and view the structured triage result returned by the backend.
+
+![Frontend analyze ticket](docs/images/frontend-analyze-ticket.png)
+
+### Review Queue
+
+The review queue can be filtered by review status and supports pagination controls.
+
+![Frontend review queue](docs/images/frontend-review-queue.png)
+
+### Analysis Detail
+
+A reviewer can inspect the original ticket, parsed analysis result, validation messages, review metadata, and raw model output when available.
+
+![Frontend analysis detail](docs/images/frontend-analysis-detail.png)
+
+### Review Status Update
+
+The UI supports updating review status, review reason, and reviewer name through the existing backend review endpoint.
+
+![Frontend review update](docs/images/frontend-review-update.png)
 
 ## Why This Project Exists
 
