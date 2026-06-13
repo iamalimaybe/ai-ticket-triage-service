@@ -1,4 +1,4 @@
-import { type ChangeEvent, type SubmitEvent, useState } from 'react'
+import { type ChangeEvent, type SubmitEvent, useRef, useState } from 'react'
 import './App.css'
 
 type ReviewStatus = 'NEEDS_REVIEW' | 'REVIEWED' | 'NOT_REQUIRED'
@@ -46,6 +46,28 @@ type ReviewQueueResponse = {
     totalPages: number
 }
 
+type AnalysisDetailResponse = {
+    analysisId: number
+    subject: string
+    body: string
+    customerId: string
+    analysisSource: string
+    rawModelOutput: string | null
+    modelConfidence: number | null
+    reviewStatus: string
+    reviewReason: string | null
+    reviewedAt: string | null
+    reviewedBy: string | null
+    status: string
+    category: string | null
+    priority: string | null
+    customerIntent: string | null
+    missingInformation: string[]
+    validationMessages: string[]
+    createdAt: string
+    updatedAt: string
+}
+
 type ApiErrorResponse = {
     timestamp?: string
     status?: number
@@ -75,6 +97,12 @@ function App() {
     const [reviewStatusFilter, setReviewStatusFilter] = useState<ReviewStatus>('NEEDS_REVIEW')
     const [reviewQueuePage, setReviewQueuePage] = useState(0)
     const [reviewQueueSize, setReviewQueueSize] = useState(10)
+
+    const [analysisDetail, setAnalysisDetail] = useState<AnalysisDetailResponse | null>(null)
+    const [analysisDetailError, setAnalysisDetailError] = useState<string | null>(null)
+    const [isLoadingAnalysisDetail, setIsLoadingAnalysisDetail] = useState(false)
+
+    const detailSectionRef = useRef<HTMLElement | null>(null)
 
     async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
         event.preventDefault()
@@ -139,10 +167,50 @@ function App() {
         }
     }
 
+    async function loadAnalysisDetail(analysisId: number) {
+        setIsLoadingAnalysisDetail(true)
+        setAnalysisDetailError(null)
+        setAnalysisDetail(null)
+
+        try {
+            const response = await fetch(`/api/tickets/analyses/${analysisId}`)
+
+            if (!response.ok) {
+                throw new Error(await readErrorMessage(response))
+            }
+
+            const data = (await response.json()) as AnalysisDetailResponse
+            setAnalysisDetail(data)
+
+            window.setTimeout(() => {
+                const detailSection = detailSectionRef.current
+
+                if (!detailSection) {
+                    return
+                }
+
+                const top = detailSection.getBoundingClientRect().top + window.scrollY - 16
+
+                window.scrollTo({
+                    top,
+                    behavior: 'smooth',
+                })
+            }, 100)
+        } catch (err) {
+            setAnalysisDetailError(
+                err instanceof Error ? err.message : 'Unexpected error while loading analysis detail.',
+            )
+        } finally {
+            setIsLoadingAnalysisDetail(false)
+        }
+    }
+
     async function handleReviewStatusChange(event: ChangeEvent<HTMLSelectElement>) {
         const nextStatus = event.target.value as ReviewStatus
+
         setReviewStatusFilter(nextStatus)
         setReviewQueuePage(0)
+        clearAnalysisDetail()
 
         if (reviewQueue) {
             await loadReviewQueue(0, reviewQueueSize, nextStatus)
@@ -151,16 +219,18 @@ function App() {
 
     async function handlePageSizeChange(event: ChangeEvent<HTMLSelectElement>) {
         const nextSize = Number(event.target.value)
+
         setReviewQueueSize(nextSize)
         setReviewQueuePage(0)
+        clearAnalysisDetail()
 
         if (reviewQueue) {
             await loadReviewQueue(0, nextSize, reviewStatusFilter)
         }
     }
-
     async function goToPreviousPage() {
         const previousPage = Math.max(reviewQueuePage - 1, 0)
+        clearAnalysisDetail()
         await loadReviewQueue(previousPage, reviewQueueSize, reviewStatusFilter)
     }
 
@@ -169,7 +239,20 @@ function App() {
             return
         }
 
+        clearAnalysisDetail()
         await loadReviewQueue(reviewQueuePage + 1, reviewQueueSize, reviewStatusFilter)
+    }
+
+    function clearAnalysisDetail() {
+        setAnalysisDetail(null)
+        setAnalysisDetailError(null)
+    }
+
+    function scrollToTop() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth',
+        })
     }
 
     const canGoPrevious = reviewQueuePage > 0
@@ -359,32 +442,64 @@ function App() {
                                 <table className="queue-table">
                                     <thead>
                                     <tr>
-                                        <th>ID</th>
                                         <th>Subject</th>
                                         <th>Status</th>
-                                        <th>Review Status</th>
-                                        <th>Category</th>
-                                        <th>Priority</th>
+                                        <th>Review</th>
+                                        <th>Triage</th>
                                         <th>Confidence</th>
                                         <th>Reason</th>
                                         <th>Created</th>
+                                        <th className="action-header" aria-label="Actions"></th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     {reviewQueue.items.map((item) => (
                                         <tr key={item.analysisId}>
-                                            <td>{item.analysisId}</td>
-                                            <td className="text-cell">
+                                            <td className="subject-cell">
                                                 <strong>{item.subject}</strong>
                                                 <span>{item.customerId}</span>
                                             </td>
+
                                             <td>{item.status}</td>
+
                                             <td>{item.reviewStatus}</td>
-                                            <td>{item.category ?? 'N/A'}</td>
-                                            <td>{item.priority ?? 'N/A'}</td>
+
+                                            <td>
+                                                <strong>{item.category ?? 'N/A'}</strong>
+                                                <span>{item.priority ?? 'N/A'}</span>
+                                            </td>
+
                                             <td>{item.modelConfidence === null ? 'N/A' : item.modelConfidence}</td>
+
                                             <td className="reason-cell">{item.reviewReason ?? 'N/A'}</td>
-                                            <td>{formatDateTime(item.createdAt)}</td>
+
+                                            <td className="date-cell">{formatDateTime(item.createdAt)}</td>
+
+                                            <td className="action-cell">
+                                                <button
+                                                    type="button"
+                                                    className="icon-button"
+                                                    onClick={() => loadAnalysisDetail(item.analysisId)}
+                                                    disabled={isLoadingAnalysisDetail}
+                                                    aria-label={`View analysis ${item.analysisId}`}
+                                                    title="View details"
+                                                >
+                                                    <svg
+                                                        aria-hidden="true"
+                                                        viewBox="0 0 24 24"
+                                                        width="18"
+                                                        height="18"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        strokeWidth="2"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                    >
+                                                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                                                        <circle cx="12" cy="12" r="3" />
+                                                    </svg>
+                                                </button>
+                                            </td>
                                         </tr>
                                     ))}
                                     </tbody>
@@ -394,6 +509,116 @@ function App() {
                     </>
                 )}
             </section>
+            <section ref={detailSectionRef} className="card detail-card">
+                <div className="section-header">
+                    <div>
+                        <h2>Analysis Detail</h2>
+                        <p className="muted">
+                            Inspect the original ticket, raw model output, parsed result, validation messages, and review metadata.
+                        </p>
+                    </div>
+                </div>
+
+                {!analysisDetail && !analysisDetailError && !isLoadingAnalysisDetail && (
+                    <p className="muted">Select a row from the review queue to inspect the saved analysis.</p>
+                )}
+
+                {isLoadingAnalysisDetail && <p className="muted">Loading analysis detail...</p>}
+
+                {analysisDetailError && <pre className="error-box">{analysisDetailError}</pre>}
+
+                {analysisDetail && (
+                    <div className="detail-grid">
+                        <ResultItem label="Analysis ID" value={analysisDetail.analysisId} />
+                        <ResultItem label="Source" value={analysisDetail.analysisSource} />
+                        <ResultItem label="Status" value={analysisDetail.status} />
+                        <ResultItem label="Review Status" value={analysisDetail.reviewStatus} />
+                        <ResultItem label="Category" value={analysisDetail.category ?? 'N/A'} />
+                        <ResultItem label="Priority" value={analysisDetail.priority ?? 'N/A'} />
+                        <ResultItem
+                            label="Confidence"
+                            value={analysisDetail.modelConfidence === null ? 'N/A' : analysisDetail.modelConfidence}
+                        />
+                        <ResultItem label="Reviewed By" value={analysisDetail.reviewedBy ?? 'N/A'} />
+                        <ResultItem
+                            label="Reviewed At"
+                            value={analysisDetail.reviewedAt ? formatDateTime(analysisDetail.reviewedAt) : 'N/A'}
+                        />
+                        <ResultItem label="Created" value={formatDateTime(analysisDetail.createdAt)} />
+                        <ResultItem label="Updated" value={formatDateTime(analysisDetail.updatedAt)} />
+
+                        <div className="detail-section">
+                            <h3>Original Ticket</h3>
+                            <p><strong>Subject:</strong> {analysisDetail.subject}</p>
+                            <p><strong>Customer ID:</strong> {analysisDetail.customerId}</p>
+                            <pre className="text-block">{analysisDetail.body}</pre>
+                        </div>
+
+                        <div className="detail-section">
+                            <h3>Customer Intent</h3>
+                            <p>{analysisDetail.customerIntent ?? 'N/A'}</p>
+                        </div>
+
+                        <div className="detail-section">
+                            <h3>Review Reason</h3>
+                            <p>{analysisDetail.reviewReason ?? 'N/A'}</p>
+                        </div>
+
+                        <div className="detail-section">
+                            <h3>Validation Messages</h3>
+                            {analysisDetail.validationMessages.length === 0 ? (
+                                <p className="muted">No validation messages.</p>
+                            ) : (
+                                <ul>
+                                    {analysisDetail.validationMessages.map((message) => (
+                                        <li key={message}>{message}</li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+
+                        <div className="detail-section">
+                            <h3>Missing Information</h3>
+                            {analysisDetail.missingInformation.length === 0 ? (
+                                <p className="muted">None.</p>
+                            ) : (
+                                <ul>
+                                    {analysisDetail.missingInformation.map((item) => (
+                                        <li key={item}>{item}</li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+
+                        <div className="detail-section">
+                            <h3>Raw Model Output</h3>
+                            <pre className="text-block">{analysisDetail.rawModelOutput ?? 'N/A'}</pre>
+                        </div>
+                    </div>
+                )}
+            </section>
+            <button
+                type="button"
+                className="go-top-button"
+                onClick={scrollToTop}
+                aria-label="Go to top"
+                title="Go to top"
+            >
+                <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    width="20"
+                    height="20"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path d="M12 19V5" />
+                    <path d="M5 12l7-7 7 7" />
+                </svg>
+            </button>
         </main>
     )
 }
