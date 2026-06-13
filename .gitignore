@@ -1,0 +1,32 @@
+# Java / Spring
+target/
+build/
+out/
+*.class
+
+# Maven / Gradle
+.mvn/wrapper/maven-wrapper.jar
+.gradle/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.*
+application-local.yml
+application-local.properties
+
+# Logs
+logs/
+*.log
+
+# Runtime / generated files
+scratch/
+generated/
