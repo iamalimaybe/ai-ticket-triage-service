@@ -8,6 +8,18 @@ This project demonstrates how traditional backend engineering can be combined wi
 
 The service accepts support tickets, analyzes them using either a deterministic analyzer or a local Ollama model, validates the structured analysis result, persists both raw and validated output, and exposes APIs for retrieval and review workflows.
 
+## Demo Screenshots
+
+The following screenshots are stored in `docs/images/` and illustrate the application running locally.
+
+### Swagger UI (`docs/images/swagger-ui.png`)
+
+Swagger UI exposes the backend API for local inspection and testing without requiring a separate frontend application.
+
+### Ticket Analysis Response (`docs/images/analyze-ticket-response.png`)
+
+This example shows the response returned after submitting a support ticket for analysis, including the structured triage output that is persisted by the system.
+
 ## Why This Project Exists
 
 LLM output should not be trusted just because it looks correct.
