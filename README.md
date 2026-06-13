@@ -32,6 +32,39 @@ This project treats AI output as untrusted until it passes controlled parsing, v
 
 The focus is not building a chatbot. The focus is building a production-aware backend service around AI output.
 
+## Architecture Flow
+
+The service follows a validation-first AI workflow:
+
+```text
+Support Ticket Request
+        |
+        v
+Analyzer Selection
+(deterministic or Ollama)
+        |
+        v
+Raw Analyzer Output
+        |
+        v
+Parser Layer
+        |
+        v
+Validation Layer
+        |
+        v
+Review Decision Rules
+        |
+        v
+Persisted Ticket Analysis
+(raw output + parsed result + audit fields)
+        |
+        v
+Review / Retrieval APIs
+```
+
+The raw model output is stored separately from the validated analysis result so that model behavior can be audited later. Failed or low-confidence analysis results are preserved and routed to review instead of being discarded silently.
+
 ## Current Features
 
 * Submit a support ticket for analysis
